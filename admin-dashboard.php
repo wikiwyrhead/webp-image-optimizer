@@ -1,4 +1,5 @@
 <?php
+
 // Add menu item to Settings
 add_action('admin_menu', 'webp_image_optimizer_menu');
 
@@ -23,7 +24,7 @@ function webp_image_optimizer_settings_init()
     add_settings_section(
         'webp_image_optimizer_main_settings',
         __('Main Settings', 'webp-image-optimizer'),
-        null,
+        'webp_image_optimizer_section_callback',
         'webp_image_optimizer_settings'
     );
 
@@ -39,6 +40,14 @@ function webp_image_optimizer_settings_init()
         'quality',
         __('Image Quality', 'webp-image-optimizer'),
         'webp_image_optimizer_quality_render',
+        'webp_image_optimizer_settings',
+        'webp_image_optimizer_main_settings'
+    );
+
+    add_settings_field(
+        'method',
+        __('WebP Compression Method', 'webp-image-optimizer'),
+        'webp_image_optimizer_method_render',
         'webp_image_optimizer_settings',
         'webp_image_optimizer_main_settings'
     );
@@ -60,23 +69,47 @@ function webp_image_optimizer_settings_init()
     );
 }
 
+function webp_image_optimizer_section_callback()
+{
+    echo '<p>' . __('Configure your WebP image optimization settings below. Each option has a detailed explanation to help you make the best choice for your site.', 'webp-image-optimizer') . '</p>';
+}
+
 function webp_image_optimizer_retain_original_render()
 {
     $options = get_option('webp_image_optimizer_settings');
 ?>
-    <input type='checkbox' name='webp_image_optimizer_settings[retain_original]' <?php checked(isset($options['retain_original'])); ?> value='1'>
-    <label for="retain_original"><?php _e('Check to retain the original image after conversion to WebP.', 'webp-image-optimizer'); ?></label>
+    <label for="retain_original">
+        <input type='checkbox' name='webp_image_optimizer_settings[retain_original]' <?php checked(isset($options['retain_original'])); ?> value='1'>
+        <?php _e('Check this box to retain the original image file after conversion to WebP.', 'webp-image-optimizer'); ?>
+    </label>
+    <p class="description"><?php _e('If unchecked, the original image will be deleted after successful conversion to WebP, saving disk space.', 'webp-image-optimizer'); ?></p>
 <?php
 }
 
 function webp_image_optimizer_quality_render()
 {
     $options = get_option('webp_image_optimizer_settings');
-    $quality = isset($options['quality']) ? $options['quality'] : 80;
+    $quality = isset($options['quality']) ? intval($options['quality']) : 80;
 ?>
-    <input type='number' name='webp_image_optimizer_settings[quality]' value='<?php echo esc_attr($quality); ?>' min='0' max='100'>
-    <label for="quality"><?php _e('Set the compression quality (0-100) for WebP images.', 'webp-image-optimizer'); ?></label>
-    <?php
+    <label for="quality">
+        <input type='number' name='webp_image_optimizer_settings[quality]' value='<?php echo esc_attr($quality); ?>' min='0' max='100' step='1'>
+        <?php _e('Set the desired quality for the WebP images (0-100).', 'webp-image-optimizer'); ?>
+    </label>
+    <p class="description"><?php _e('A higher quality setting will result in larger file sizes but better image quality. The default value is 80.', 'webp-image-optimizer'); ?></p>
+<?php
+}
+
+function webp_image_optimizer_method_render()
+{
+    $options = get_option('webp_image_optimizer_settings');
+    $method = isset($options['method']) ? intval($options['method']) : 6;
+?>
+    <label for="method">
+        <input type='number' name='webp_image_optimizer_settings[method]' value='<?php echo esc_attr($method); ?>' min='0' max='6' step='1'>
+        <?php _e('Set the WebP compression method (0-6).', 'webp-image-optimizer'); ?>
+    </label>
+    <p class="description"><?php _e('Higher values result in better compression (smaller file sizes) but slower conversion times. The default value is 6.', 'webp-image-optimizer'); ?></p>
+<?php
 }
 
 function webp_image_optimizer_allowed_types_render()
@@ -84,20 +117,31 @@ function webp_image_optimizer_allowed_types_render()
     $options = get_option('webp_image_optimizer_settings');
     $allowed_types = isset($options['allowed_types']) ? $options['allowed_types'] : ['image/jpeg', 'image/png', 'image/gif'];
     $all_types = ['image/jpeg', 'image/png', 'image/gif', 'image/bmp', 'image/tiff', 'image/svg+xml'];
+?>
+    <p><?php _e('Select the image types that should be automatically converted to WebP:', 'webp-image-optimizer'); ?></p>
+    <?php
     foreach ($all_types as $type) {
     ?>
-        <input type='checkbox' name='webp_image_optimizer_settings[allowed_types][]' <?php checked(in_array($type, $allowed_types)); ?> value='<?php echo esc_attr($type); ?>'>
-        <label for="allowed_types"><?php echo esc_html($type); ?></label><br>
+        <label for="allowed_types">
+            <input type='checkbox' name='webp_image_optimizer_settings[allowed_types][]' <?php checked(in_array($type, $allowed_types)); ?> value='<?php echo esc_attr($type); ?>'>
+            <?php echo esc_html($type); ?>
+        </label><br>
     <?php
     }
+    ?>
+    <p class="description"><?php _e('By default, JPEG, PNG, and GIF images are converted. You can extend support to other image formats like BMP, TIFF, and SVG.', 'webp-image-optimizer'); ?></p>
+<?php
 }
 
 function webp_image_optimizer_set_alt_text_render()
 {
     $options = get_option('webp_image_optimizer_settings');
-    ?>
-    <input type='checkbox' name='webp_image_optimizer_settings[set_alt_text]' <?php checked(isset($options['set_alt_text'])); ?> value='1'>
-    <label for="set_alt_text"><?php _e('Automatically set the image alt text from the filename (removes hyphens and converts to sentence case).', 'webp-image-optimizer'); ?></label>
+?>
+    <label for="set_alt_text">
+        <input type='checkbox' name='webp_image_optimizer_settings[set_alt_text]' <?php checked(isset($options['set_alt_text'])); ?> value='1'>
+        <?php _e('Check to automatically set image alt text based on the filename.', 'webp-image-optimizer'); ?>
+    </label>
+    <p class="description"><?php _e('This option helps with SEO by automatically generating descriptive alt text from the image filename.', 'webp-image-optimizer'); ?></p>
 <?php
 }
 
@@ -117,24 +161,24 @@ function webp_image_optimizer_settings_page()
     <style>
         .wrap h1 {
             font-size: 2em;
-            margin-bottom: 20px;
+            color: #0073aa;
         }
 
-        .wrap table.form-table th {
-            font-weight: 600;
+        .wrap form {
+            background-color: #fff;
+            border: 1px solid #ccd0d4;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, .1);
         }
 
-        .wrap input[type="checkbox"] {
-            margin-right: 10px;
+        .wrap label {
+            font-weight: bold;
         }
 
-        .wrap .form-table tr {
-            border-bottom: 1px solid #ddd;
-            padding-bottom: 15px;
-        }
-
-        .wrap .form-table tr:last-child {
-            border-bottom: none;
+        .description {
+            font-style: italic;
+            color: #555;
         }
     </style>
 <?php
