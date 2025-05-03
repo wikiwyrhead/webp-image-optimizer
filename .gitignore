@@ -1,0 +1,37 @@
+# Ignore Git files
+.git/
+*.git
+
+# Ignore VSCode files
+.vscode/
+.history/
+
+# Ignore node_modules
+node_modules/
+
+# Ignore logs
+logs/
+*.log
+
+# Ignore OS-specific files
+.DS_Store
+Thumbs.db
+
+# Ignore environment variables
+.env
+
+# Ignore build artifacts
+/dist
+/build
+
+# Ignore temporary files
+*.tmp
+*.bak
+*.swp
+*.swo
+
+# Ignore IDE-specific files (if using other IDEs)
+.idea/
+*.iml
+
+# Note: Do not add .gitignore to this list; it should be tracked.
