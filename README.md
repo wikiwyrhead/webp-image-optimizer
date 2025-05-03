@@ -48,6 +48,14 @@ For support, please create an issue on the [GitHub repository](https://github.co
 
 ## Changelog
 
+### Version 1.2.4
+
+- Improved deletion: When deleting an image from the Media Library, all related files (original, WebP, and intermediate sizes) are now properly deleted from the file system.
+- Lossy/lossless PNG handling: PNGs are now lossy by default unless lossless is explicitly selected. Lossless mode ignores the quality setting, as expected.
+- Removed SVG from Allowed Image Types (SVG cannot be converted to WebP).
+- Fixed admin settings: All checkboxes now save and reflect their state correctly, including 'Set Alt Text'.
+- Improved conversion robustness: Always strips metadata, reduces color palette for lossy PNGs, and adds debug logging for file sizes before/after conversion.
+
 ### Version 1.2.3
 
 - Added a test feature to the settings page to test the "Retain Original Image" feature.
