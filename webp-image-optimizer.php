@@ -198,13 +198,26 @@ function webp_image_optimizer_settings_page() {
             submit_button();
             ?>
         </form>
-    </div>
+        <div class="settings-card donation-card" style="margin-top: 30px; margin-bottom: 30px; padding: 20px; background: #fff; border: 1px solid #ccd0d4; border-radius: 5px; box-shadow: 0 1px 3px rgba(0,0,0,.1);">
+            <h2><span class="dashicons dashicons-heart" style="color: #d63638;"></span> <?php _e('Support the Development', 'webp-image-optimizer'); ?></h2>
+            <div class="card-content">
+                <div class="donation-content" style="text-align:center;">
+                    <p><?php _e('If you find this plugin useful, please consider making a donation to support continued development and maintenance. Your contribution helps keep this plugin updated and compatible with the latest WordPress versions.', 'webp-image-optimizer'); ?></p>
+                    <div class="donation-button" style="margin: 20px 0;">
+                        <a href="https://www.paypal.com/paypalme/arnelborresgo" target="_blank" class="button button-primary" style="display:inline-flex;align-items:center;justify-content:center;padding:8px 20px;font-size:14px;line-height:2;text-decoration:none;background-color:#0073aa;border-color:#0073aa;color:#fff;border-radius:4px;transition:all 0.3s ease;">
+                            <span class="dashicons dashicons-paypal" style="margin-right:8px;font-size:18px;width:18px;height:18px;"></span>
+                            <?php _e('Donate with PayPal', 'webp-image-optimizer'); ?>
+                        </a>
+                    </div>
+                    <p class="donation-email" style="margin-top:12px;font-size:12px;color:#646970;font-style:italic;">PayPal Email: arnel.b.go@gmail.com</p>
+                </div>
+            </div>
+        </div>
     <style>
         .wrap h1 {
             font-size: 2em;
             color: #0073aa;
         }
-
         .wrap form {
             background-color: #fff;
             border: 1px solid #ccd0d4;
@@ -212,14 +225,65 @@ function webp_image_optimizer_settings_page() {
             border-radius: 5px;
             box-shadow: 0 1px 3px rgba(0, 0, 0, .1);
         }
-
         .wrap label {
             font-weight: bold;
         }
-
         .description {
             font-style: italic;
             color: #555;
+        }
+        /* Donation Card Styles */
+        .donation-card {
+            margin-top: 24px;
+        }
+        .donation-content {
+            text-align: center;
+        }
+        .donation-button {
+            margin: 20px 0;
+        }
+        .donation-button .button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 20px;
+            height: auto;
+            font-size: 14px;
+            line-height: 2;
+            text-decoration: none;
+            background-color: #0073aa;
+            border-color: #0073aa;
+            color: #fff;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+        .donation-button .button:hover {
+            background-color: #005177;
+            border-color: #005177;
+        }
+        .donation-button .dashicons {
+            margin-right: 8px;
+            font-size: 18px;
+            width: 18px;
+            height: 18px;
+        }
+        .donation-email {
+            margin-top: 12px;
+            font-size: 12px;
+            color: #646970;
+            font-style: italic;
+        }
+        @media screen and (max-width: 782px) {
+            .donation-card {
+                margin-top: 20px;
+            }
+            .donation-button .button {
+                padding: 6px 16px;
+                font-size: 12px;
+            }
+            .donation-email {
+                font-size: 11px;
+            }
         }
     </style>
     <?php
