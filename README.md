@@ -32,9 +32,6 @@ Additionally, the plugin offers an optional feature to automatically set the ima
 4. **Allowed Image Types:** Select which image types should be automatically converted to WebP.
 5. **Set Alt Text:** Enable or disable automatic alt text generation for uploaded images.
 
-## Testing
-
-You can test the "Retain Original Image" feature by clicking the "Run Test" button on the settings page. This will check your media library and show you how many WebP and original images are present.
 
 ## Requirements
 
