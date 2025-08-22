@@ -1,0 +1,190 @@
+/* WebP Image Optimizer Admin Styles */
+.wrap h1 {
+  font-size: 2em;
+  color: #0073aa;
+}
+
+.wrap form {
+  background-color: #fff;
+  border: 1px solid #ccd0d4;
+  padding: 20px;
+  border-radius: 5px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .1);
+}
+
+.wrap label {
+  font-weight: bold;
+}
+
+.description {
+  font-style: italic;
+  color: #555;
+}
+
+.settings-card.help-card {
+  margin-top: 20px;
+  padding: 0;
+  background: #fff;
+  border: 1px solid #ccd0d4;
+  border-radius: 5px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.05);
+}
+
+.settings-card.help-card .help-card-header {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:12px 16px;
+  border-bottom:1px solid #ccd0d4;
+}
+
+#wio-help-content {
+  padding: 16px;
+}
+
+.donation-card { margin-top: 24px; }
+.donation-content { text-align: center; }
+.donation-button { margin: 20px 0; }
+.donation-button .button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 20px;
+  height: auto;
+  font-size: 14px;
+  line-height: 2;
+  text-decoration: none;
+  background-color: #0073aa;
+  border-color: #0073aa;
+  color: #fff;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+}
+.donation-button .button:hover {
+  background-color: #005177;
+  border-color: #005177;
+}
+.donation-button .dashicons {
+  margin-right: 8px;
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+}
+.donation-email {
+  margin-top: 12px;
+  font-size: 12px;
+  color: #646970;
+  font-style: italic;
+}
+
+@media screen and (max-width: 782px) {
+  .donation-card { margin-top: 20px; }
+  .donation-button .button { padding: 6px 16px; font-size: 12px; }
+  .donation-email { font-size: 11px; }
+}
+
+/* Modal styles */
+body.wio-modal-open { overflow: hidden; }
+
+.wio-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 100000; /* above WP admin */
+}
+
+.wio-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+}
+
+.wio-modal__dialog {
+  position: relative;
+  width: 90vw;
+  max-width: 960px;
+  height: 80vh;
+  margin: 5vh auto 0;
+  background: #fff;
+  border-radius: 6px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.wio-modal__header {
+  padding: 12px 16px;
+  border-bottom: 1px solid #e2e4e7;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.wio-modal__title {
+  margin: 0;
+  font-size: 16px;
+}
+
+.wio-modal__body {
+  flex: 1;
+  overflow: auto; /* allow scrolling of inline docs */
+}
+
+.wio-modal__body iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.wio-modal__footer {
+  padding: 10px 16px;
+  border-top: 1px solid #e2e4e7;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* Inline docs layout */
+.wio-docs__layout {
+  display: flex;
+  gap: 16px;
+  height: 100%;
+}
+
+.wio-docs__nav {
+  flex: 0 0 220px;
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
+  padding: 8px 0;
+  border-right: 1px solid #e2e4e7;
+}
+.wio-docs__nav ul { list-style: none; margin: 0; padding: 0; }
+.wio-docs__nav li { margin: 0; }
+.wio-docs__link {
+  display: block;
+  padding: 8px 12px;
+  color: #1d2327;
+  text-decoration: none;
+  border-left: 3px solid transparent;
+}
+.wio-docs__link:hover { background: #f6f7f7; }
+.wio-docs__link.is-active {
+  font-weight: 600;
+  border-left-color: #2271b1;
+  background: #f0f6fc;
+}
+
+.wio-docs__content {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 8px 24px 8px;
+}
+.wio-docs__content h3 { margin: 8px 0 12px; }
+.wio-docs__content h4 { margin: 18px 0 6px; }
+.wio-docs__content p { margin: 0 0 10px; line-height: 1.5; }
+
+@media screen and (max-width: 782px) {
+  .wio-docs__layout { flex-direction: column; }
+  .wio-docs__nav { position: static; border-right: 0; border-bottom: 1px solid #e2e4e7; }
+}

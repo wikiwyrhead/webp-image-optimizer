@@ -79,9 +79,12 @@ class Image
                         if (is_wp_error($image_editor)) {
                             return $upload;
                         }
-                        // Always strip metadata (GD does this by default)
+                        // Always strip metadata (GD does this by default). Apply quality correctly.
+                        if (method_exists($image_editor, 'set_quality')) {
+                            $image_editor->set_quality($quality);
+                        }
                         $new_file_path = $file_info['dirname'] . '/' . wp_unique_filename($file_info['dirname'], $file_info['filename'] . '.webp');
-                        $saved_image = $image_editor->save($new_file_path, 'image/webp', array('quality' => $quality));
+                        $saved_image = $image_editor->save($new_file_path, 'image/webp');
                         if (is_wp_error($saved_image)) {
                             return $upload;
                         }
@@ -103,7 +106,10 @@ class Image
                 }
             }
         } catch (\Exception $e) {
-            // Silently fail and return original upload
+            // Log exception details in debug mode, then return original upload
+            if (defined('WP_DEBUG') && WP_DEBUG) {
+                error_log('WIO: Exception during conversion - ' . $e->getMessage());
+            }
         }
         return $upload;
     }
@@ -140,10 +146,13 @@ class Image
                 @unlink($candidate);
             }
         }
-        // Also delete all intermediate sizes (e.g., -150x150)
-        $pattern = $base_dir . DIRECTORY_SEPARATOR . $base_name . '-*.*';
-        foreach (glob($pattern) as $thumb) {
-            @unlink($thumb);
+        // Also delete all intermediate sizes (e.g., -150x150) for known image extensions only
+        $thumb_exts = ['webp', 'jpg', 'jpeg', 'png', 'gif', 'bmp', 'tiff'];
+        foreach ($thumb_exts as $tExt) {
+            $pattern = $base_dir . DIRECTORY_SEPARATOR . $base_name . '-*.' . $tExt;
+            foreach (glob($pattern) as $thumb) {
+                @unlink($thumb);
+            }
         }
         // Delete the original file if it has a different extension and is stored in _wp_attached_file meta
         $meta_file = get_post_meta($post_ID, '_wp_attached_file', true);
