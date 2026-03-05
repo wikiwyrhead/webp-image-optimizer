@@ -1,107 +1,262 @@
-/* WebP Image Optimizer Admin Styles */
-.wrap h1 {
-  font-size: 2em;
-  color: #0073aa;
-}
+/* WebP Image Optimizer – Admin Styles v2.0.0 */
 
-.wrap form {
-  background-color: #fff;
-  border: 1px solid #ccd0d4;
-  padding: 20px;
-  border-radius: 5px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, .1);
-}
+/* ─── Layout & Header ────────────────────────────────────────── */
+.wio-wrap { max-width: 980px; }
 
-.wrap label {
-  font-weight: bold;
+.wio-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 0;
 }
-
-.description {
-  font-style: italic;
-  color: #555;
+.wio-header__title h1 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.8em;
+  color: #1d2327;
+  margin: 0;
 }
+.wio-header__title .dashicons { font-size: 28px; width: 28px; height: 28px; color: #2271b1; }
 
-.settings-card.help-card {
-  margin-top: 20px;
-  padding: 0;
-  background: #fff;
-  border: 1px solid #ccd0d4;
-  border-radius: 5px;
-  box-shadow: 0 1px 3px rgba(0,0,0,.05);
+.wio-header__badge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
 }
-
-.settings-card.help-card .help-card-header {
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  padding:12px 16px;
-  border-bottom:1px solid #ccd0d4;
-}
-
-#wio-help-content {
-  padding: 16px;
-}
-
-.donation-card { margin-top: 24px; }
-.donation-content { text-align: center; }
-.donation-button { margin: 20px 0; }
-.donation-button .button {
+.wio-engine-badge {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  padding: 8px 20px;
-  height: auto;
-  font-size: 14px;
-  line-height: 2;
-  text-decoration: none;
-  background-color: #0073aa;
-  border-color: #0073aa;
-  color: #fff;
-  border-radius: 4px;
-  transition: all 0.3s ease;
-}
-.donation-button .button:hover {
-  background-color: #005177;
-  border-color: #005177;
-}
-.donation-button .dashicons {
-  margin-right: 8px;
-  font-size: 18px;
-  width: 18px;
-  height: 18px;
-}
-.donation-email {
-  margin-top: 12px;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 12px;
   font-size: 12px;
-  color: #646970;
-  font-style: italic;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.wio-engine-badge .dashicons { font-size: 16px; width: 16px; height: 16px; }
+.wio-engine-badge--ok { background: #edf7ee; color: #1a7a1a; }
+.wio-engine-badge--error { background: #fcf0f1; color: #cc1818; }
+.wio-engine-formats { font-size: 12px; color: #646970; }
+
+/* ─── Tabs ───────────────────────────────────────────────────── */
+.wio-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 2px solid #c3c4c7;
+  margin: 16px 0 0;
+}
+.wio-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 10px 18px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #50575e;
+  text-decoration: none;
+  border: 2px solid transparent;
+  border-bottom: none;
+  border-radius: 4px 4px 0 0;
+  margin-bottom: -2px;
+  transition: color .15s, background .15s;
+}
+.wio-tab:hover { color: #2271b1; background: #f6f7f7; }
+.wio-tab--active {
+  color: #1d2327;
+  background: #fff;
+  border-color: #c3c4c7;
+  font-weight: 600;
+}
+.wio-tab .dashicons { font-size: 16px; width: 16px; height: 16px; }
+
+/* ─── Tab content panels ─────────────────────────────────────── */
+.wio-tab-content {
+  display: none;
+  background: #fff;
+  border: 1px solid #c3c4c7;
+  border-top: none;
+  padding: 24px;
+  border-radius: 0 0 4px 4px;
+}
+.wio-tab-content--active { display: block; }
+
+/* ─── Settings form ──────────────────────────────────────────── */
+.wio-settings-form .form-table th { font-weight: 600; padding: 16px 10px 16px 0; }
+.wio-settings-form .form-table td { padding: 12px 10px; }
+.wio-settings-form .form-table td label { font-weight: normal; }
+.wio-settings-form .description { font-style: normal; color: #646970; margin-top: 6px; }
+.wio-settings-form .submit { padding-top: 16px; border-top: 1px solid #e2e4e7; }
+
+/* Range fields */
+.wio-range-field { display: flex; align-items: center; gap: 12px; }
+.wio-range-field input[type="range"] { flex: 1; max-width: 320px; accent-color: #2271b1; }
+.wio-range-value {
+  display: inline-block;
+  min-width: 36px;
+  padding: 2px 8px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 14px;
+  background: #f0f0f1;
+  border-radius: 4px;
 }
 
-@media screen and (max-width: 782px) {
-  .donation-card { margin-top: 20px; }
-  .donation-button .button { padding: 6px 16px; font-size: 12px; }
-  .donation-email { font-size: 11px; }
+/* Checkbox grid */
+.wio-checkbox-grid { display: flex; flex-wrap: wrap; gap: 8px 20px; }
+.wio-type-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: normal;
 }
+.wio-type-unsupported { opacity: .55; }
+.wio-badge {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 8px;
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: .3px;
+}
+.wio-badge--muted { background: #f0f0f1; color: #787c82; }
 
-/* Modal styles */
+/* ─── Cards ──────────────────────────────────────────────────── */
+.wio-card {
+  background: #fff;
+  border: 1px solid #c3c4c7;
+  border-radius: 4px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+.wio-card h2, .wio-card h3 { margin-top: 0; }
+.wio-card__desc { color: #646970; margin-bottom: 20px; }
+
+/* ─── Stats grid ─────────────────────────────────────────────── */
+.wio-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.wio-stat-card {
+  background: #fff;
+  border: 1px solid #c3c4c7;
+  border-radius: 6px;
+  padding: 20px;
+  text-align: center;
+  transition: box-shadow .15s;
+}
+.wio-stat-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+.wio-stat-card__icon { font-size: 28px; width: 28px; height: 28px; color: #646970; display: block; margin: 0 auto 8px; }
+.wio-stat-card--success .wio-stat-card__icon { color: #1a7a1a; }
+.wio-stat-card--highlight .wio-stat-card__icon { color: #2271b1; }
+.wio-stat-card__value { font-size: 28px; font-weight: 700; color: #1d2327; line-height: 1.2; }
+.wio-stat-card__label { font-size: 12px; color: #646970; margin-top: 4px; text-transform: uppercase; letter-spacing: .5px; }
+
+/* Conversion ratio bar */
+.wio-conversion-ratio { margin-top: 0; }
+.wio-progress__summary { margin-top: 10px; color: #646970; }
+
+/* ─── Progress bar ───────────────────────────────────────────── */
+.wio-progress { margin: 16px 0; }
+.wio-progress__bar {
+  width: 100%;
+  height: 18px;
+  background: #f0f0f1;
+  border-radius: 9px;
+  overflow: hidden;
+}
+.wio-progress__bar--large { height: 24px; border-radius: 12px; }
+.wio-progress__fill {
+  height: 100%;
+  border-radius: inherit;
+  background: #2271b1;
+  transition: width .3s ease;
+}
+.wio-progress__fill--good { background: #00a32a; }
+.wio-progress__fill--ok { background: #dba617; }
+.wio-progress__fill--low { background: #cc1818; }
+.wio-progress__text { font-size: 13px; color: #646970; margin-top: 6px; }
+
+/* ─── Bulk conversion ────────────────────────────────────────── */
+.wio-bulk-counts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.wio-bulk-count {
+  text-align: center;
+  padding: 12px;
+  background: #f6f7f7;
+  border-radius: 4px;
+}
+.wio-bulk-count__number { display: block; font-size: 22px; font-weight: 700; color: #1d2327; }
+.wio-bulk-count__label { font-size: 11px; color: #646970; text-transform: uppercase; letter-spacing: .4px; }
+
+.wio-bulk-actions { margin-top: 16px; display: flex; gap: 10px; align-items: center; }
+.wio-bulk-actions .button-hero .dashicons { margin-right: 6px; vertical-align: middle; }
+
+.wio-bulk-log { margin-top: 16px; }
+.wio-bulk-log h3 { margin-bottom: 8px; }
+.wio-bulk-log__entries {
+  max-height: 240px;
+  overflow-y: auto;
+  font-family: monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  padding: 10px;
+  background: #1d2327;
+  color: #c3c4c7;
+  border-radius: 4px;
+}
+.wio-bulk-log__entries .wio-log-ok { color: #72d572; }
+.wio-bulk-log__entries .wio-log-skip { color: #dba617; }
+.wio-bulk-log__entries .wio-log-err { color: #ff6b6b; }
+
+/* ─── Footer cards (help & donation) ─────────────────────────── */
+.wio-footer-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 24px;
+}
+.wio-footer-cards .help-card,
+.wio-footer-cards .donation-card { margin: 0; }
+
+.help-card .help-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e2e4e7;
+  margin-bottom: 12px;
+}
+.help-card .help-card-header h2 { margin: 0; }
+#wio-help-toggle { margin-left: 12px; }
+#wio-help-content { display: none; }
+.wio-help-list { list-style: disc; margin-left: 20px; }
+.wio-help-links { margin-top: 12px; }
+.wio-heart-icon { color: #d63638; }
+
+.donation-card h2 { display: flex; align-items: center; gap: 6px; }
+.donation-card p { color: #646970; }
+
+/* ─── Modal ──────────────────────────────────────────────────── */
 body.wio-modal-open { overflow: hidden; }
-
-.wio-modal {
-  position: fixed;
-  inset: 0;
-  z-index: 100000; /* above WP admin */
-}
-
-.wio-modal__backdrop {
-  position: absolute;
-  inset: 0;
-  background: rgba(0,0,0,0.5);
-}
-
+.wio-modal[aria-hidden="true"] { display: none; }
+.wio-modal { position: fixed; inset: 0; z-index: 100000; }
+.wio-modal__backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.5); }
 .wio-modal__dialog {
   position: relative;
   width: 90vw;
-  max-width: 960px;
+  max-width: 900px;
   height: 80vh;
   margin: 5vh auto 0;
   background: #fff;
@@ -111,80 +266,71 @@ body.wio-modal-open { overflow: hidden; }
   flex-direction: column;
   overflow: hidden;
 }
+.wio-modal__header { padding: 12px 16px; border-bottom: 1px solid #e2e4e7; display: flex; align-items: center; justify-content: space-between; }
+.wio-modal__title { margin: 0; font-size: 16px; }
+.wio-modal__body { flex: 1; overflow: auto; }
+.wio-modal__footer { padding: 10px 16px; border-top: 1px solid #e2e4e7; display: flex; justify-content: flex-end; gap: 8px; }
 
-.wio-modal__header {
-  padding: 12px 16px;
-  border-bottom: 1px solid #e2e4e7;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.wio-modal__title {
-  margin: 0;
-  font-size: 16px;
-}
-
-.wio-modal__body {
-  flex: 1;
-  overflow: auto; /* allow scrolling of inline docs */
-}
-
-.wio-modal__body iframe {
-  width: 100%;
-  height: 100%;
-  border: 0;
-}
-
-.wio-modal__footer {
-  padding: 10px 16px;
-  border-top: 1px solid #e2e4e7;
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-}
-
-/* Inline docs layout */
-.wio-docs__layout {
-  display: flex;
-  gap: 16px;
-  height: 100%;
-}
-
-.wio-docs__nav {
-  flex: 0 0 220px;
-  position: sticky;
-  top: 0;
-  align-self: flex-start;
-  padding: 8px 0;
-  border-right: 1px solid #e2e4e7;
-}
+/* Docs layout inside modal */
+.wio-docs__layout { display: flex; gap: 16px; height: 100%; }
+.wio-docs__nav { flex: 0 0 200px; position: sticky; top: 0; align-self: flex-start; padding: 8px 0; border-right: 1px solid #e2e4e7; }
 .wio-docs__nav ul { list-style: none; margin: 0; padding: 0; }
-.wio-docs__nav li { margin: 0; }
-.wio-docs__link {
-  display: block;
-  padding: 8px 12px;
-  color: #1d2327;
-  text-decoration: none;
-  border-left: 3px solid transparent;
-}
+.wio-docs__link { display: block; padding: 8px 12px; color: #1d2327; text-decoration: none; border-left: 3px solid transparent; }
 .wio-docs__link:hover { background: #f6f7f7; }
-.wio-docs__link.is-active {
-  font-weight: 600;
-  border-left-color: #2271b1;
-  background: #f0f6fc;
-}
+.wio-docs__link.is-active { font-weight: 600; border-left-color: #2271b1; background: #f0f6fc; }
 
-.wio-docs__content {
-  flex: 1;
-  min-width: 0;
-  padding: 4px 8px 24px 8px;
+/* ─── AI Alt Text Settings ───────────────────────────────────── */
+.wio-ai-settings { margin-top: 4px; }
+.wio-ai-settings > label { font-weight: 500; }
+.wio-ai-settings > .description { margin-top: 6px; margin-bottom: 0; }
+
+.wio-ai-fields {
+  margin-top: 16px;
+  padding: 16px 20px;
+  background: #f6f7f7;
+  border: 1px solid #e2e4e7;
+  border-radius: 6px;
+  border-left: 3px solid #2271b1;
 }
+.wio-ai-table { width: 100%; border-collapse: collapse; }
+.wio-ai-table th { text-align: left; font-weight: 600; padding: 10px 12px 10px 0; vertical-align: top; width: 140px; white-space: nowrap; }
+.wio-ai-table td { padding: 10px 0; }
+.wio-ai-table select,
+.wio-ai-table input[type="text"],
+.wio-ai-table input[type="password"] { max-width: 360px; }
+.wio-ai-table textarea { max-width: 500px; }
+.wio-ai-table .description { margin-top: 4px; font-size: 12px; }
+
+#wio-ai-test { margin-left: 8px; }
+#wio-ai-test-result {
+  display: inline-block;
+  margin-left: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  vertical-align: middle;
+}
+#wio-ai-test-result.wio-ai-ok { color: #1a7a1a; }
+#wio-ai-test-result.wio-ai-err { color: #cc1818; }
+
+/* ─── Responsive ─────────────────────────────────────────────── */
+@media (max-width: 782px) {
+  .wio-ai-table th,
+  .wio-ai-table td { display: block; padding: 6px 0; width: 100%; }
+  .wio-ai-table th { padding-bottom: 2px; }
+}
+.wio-docs__content { flex: 1; min-width: 0; padding: 4px 8px 24px 8px; }
 .wio-docs__content h3 { margin: 8px 0 12px; }
 .wio-docs__content h4 { margin: 18px 0 6px; }
 .wio-docs__content p { margin: 0 0 10px; line-height: 1.5; }
 
+/* ─── Responsive ─────────────────────────────────────────────── */
 @media screen and (max-width: 782px) {
+  .wio-header { flex-direction: column; align-items: flex-start; }
+  .wio-tabs { overflow-x: auto; }
+  .wio-tab { padding: 8px 12px; font-size: 12px; }
+  .wio-stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .wio-footer-cards { grid-template-columns: 1fr; }
   .wio-docs__layout { flex-direction: column; }
   .wio-docs__nav { position: static; border-right: 0; border-bottom: 1px solid #e2e4e7; }
+  .wio-range-field input[type="range"] { max-width: 200px; }
 }
