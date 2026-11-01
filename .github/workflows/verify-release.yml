@@ -1,0 +1,106 @@
+name: Verify and release
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['7.0', '8.3', '8.4']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: gd, imagick
+          coverage: none
+      - run: find . -name '*.php' -not -path './.git/*' -print0 | xargs -0 -n1 php -l
+      - run: php tests/regression.php
+      - name: Verify GD without ImageMagick
+        run: |
+          if php -r 'exit(PHP_VERSION_ID < 80000 ? 0 : 1);'; then
+            php -n -d extension=json.so -d extension=gd.so tests/regression.php
+          else
+            php -n -d extension=gd.so tests/regression.php
+          fi
+      - run: node --check assets/js/admin.js
+  wordpress:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: wio_test_only
+          MYSQL_DATABASE: wordpress
+        ports: ['3306:3306']
+        options: --health-cmd="mysqladmin ping -pwio_test_only" --health-interval=10s --health-timeout=5s --health-retries=10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: gd, imagick, mysqli
+          tools: wp-cli
+          coverage: none
+      - name: Install disposable WordPress
+        run: |
+          wp core download --version=7.1.4 --path=/tmp/wio-wordpress
+          wp config create --path=/tmp/wio-wordpress --dbname=wordpress --dbuser=root --dbpass=wio_test_only --dbhost=127.0.0.1:3306
+          wp core install --path=/tmp/wio-wordpress --url=http://wio.test --title=WIO --admin_user=wio --admin_password=wio_test_only --admin_email=wio@example.invalid --skip-email
+      - name: Verify real WordPress media lifecycle
+        env:
+          WIO_DISPOSABLE_TEST_SITE: 'yes'
+          WIO_WP_ROOT: /tmp/wio-wordpress
+        run: php tests/wordpress-integration.php
+  release:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [test, wordpress]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    concurrency:
+      group: plugin-release
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Detect a version bump
+        id: version
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: |
+          python3 - <<'PY'
+          import os, re, subprocess
+          from pathlib import Path
+          pattern = r"const WIO_VERSION = '([0-9]+\.[0-9]+\.[0-9]+)'"
+          current = re.search(pattern, Path('webp-image-optimizer.php').read_text()).group(1)
+          previous = subprocess.check_output(['git', 'show', os.environ['BEFORE'] + ':webp-image-optimizer.php'], text=True)
+          old = re.search(pattern, previous).group(1)
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write('changed=' + str(current != old).lower() + '\nversion=' + current + '\n')
+          PY
+      - name: Build installable plugin ZIP
+        if: steps.version.outputs.changed == 'true'
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          mkdir -p /tmp/package/webp-image-optimizer
+          cp webp-image-optimizer.php uninstall.php README.md /tmp/package/webp-image-optimizer/
+          cp -R includes assets /tmp/package/webp-image-optimizer/
+          cd /tmp/package
+          zip -qr "webp-image-optimizer-v${VERSION}.zip" webp-image-optimizer
+          sha256sum "webp-image-optimizer-v${VERSION}.zip" > "webp-image-optimizer-v${VERSION}.zip.sha256"
+      - name: Publish GitHub release
+        if: steps.version.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          gh release create "v${VERSION}" "/tmp/package/webp-image-optimizer-v${VERSION}.zip" "/tmp/package/webp-image-optimizer-v${VERSION}.zip.sha256" --target "$GITHUB_SHA" --title "WebP Image Optimizer v${VERSION}" --notes-file docs/release-notes.md

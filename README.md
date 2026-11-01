@@ -1,6 +1,6 @@
 # WebP Image Optimizer
 
-![Plugin Version](https://img.shields.io/badge/version-2.0.0-blue.svg)
+![Plugin Version](https://img.shields.io/badge/version-2.0.1-blue.svg)
 ![GPLv2 License](https://img.shields.io/badge/license-GPLv2-blue.svg)
 
 ## Description
@@ -14,7 +14,7 @@ WebP Image Optimizer is a comprehensive WordPress plugin that converts uploaded 
 - **Customizable Quality** -- Compression quality slider (0-100, default 80).
 - **Compression Method** -- WebP method slider (0-6, default 6) to balance speed vs. file size.
 - **PNG Lossless Mode** -- Optional lossless WebP for PNGs when pixel-perfect output is required.
-- **Retain Originals** -- Optionally keep original files alongside WebP versions.
+- **Retain Originals** -- Optionally keep new upload sources. Bulk conversion always preserves existing source URLs.
 - **Engine Auto-Detection** -- Uses ImageMagick when available; falls back to GD automatically.
 - **HEIF/HEIC Support** -- Converts Apple HEIF/HEIC photos when ImageMagick supports the format.
 - **50 MB Safety Limit** -- Files larger than 50 MB are skipped to prevent server timeouts.
@@ -90,11 +90,13 @@ WebP Image Optimizer is a comprehensive WordPress plugin that converts uploaded 
 
 ### Statistics Tab
 
-View total images, WebP images, unconverted images, bytes saved, and a WebP coverage percentage bar.
+View total images, WebP images, unconverted images, estimated encoding size reduction, and WebP coverage. This compares original and encoded main-image sizes; retained originals and thumbnails still use disk space.
+
+**AI model availability:** Provider catalogs change. Retired defaults may require a custom currently supported vision model. Test Connection checks a text request, not image understanding. See the audit for provider follow-up work.
 
 ## Requirements
 
-- WordPress 5.0+
+- WordPress 5.8+
 - PHP 7.0+
 - GD or ImageMagick PHP extension
 - For AI alt text: An API key from one of the 8 supported providers
@@ -118,8 +120,9 @@ webp-image-optimizer/
 
 | Hook | Type | Description |
 |------|------|-------------|
-| `wp_generate_attachment_metadata` | Filter | Converts uploaded images and generates AI alt text |
-| `delete_attachment` | Action | Deletes WebP and original files when attachment is removed |
+| `wp_handle_upload` | Filter | Converts newly uploaded images |
+| `wp_generate_attachment_metadata` | Filter | Records upload savings and generates alt text |
+| `delete_attachment` | Action | Deletes explicitly tracked retained source files; WordPress handles active files |
 | `wio_after_bulk_convert` | Action | Fires after each bulk-converted image |
 | `attachment_fields_to_edit` | Filter | Adds Generate AI Alt Text button to Media Library |
 
@@ -128,6 +131,12 @@ webp-image-optimizer/
 For support, create an issue on the [GitHub repository](https://github.com/wikiwyrhead/webp-image-optimizer) or contact the plugin author.
 
 ## Changelog
+
+### Version 2.0.1
+
+File cleanup and bulk conversion safety fixes, upload statistics, format settings, animation protection, independent AI alt text, API-key removal, and bulk progress fixes. WordPress 5.8+ is required. See [release notes](docs/release-notes.md) and [audit findings](docs/audit-2.0.1.md).
+
+**Compatibility:** Bulk conversion keeps old files and URLs, including when retention is disabled for new uploads. Old embedded URLs are not rewritten. GIF conversion requires ImageMagick to check animation. Legacy untracked source files are left untouched.
 
 ### Version 2.0.0
 
