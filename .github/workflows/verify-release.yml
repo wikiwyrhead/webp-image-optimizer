@@ -24,9 +24,37 @@ jobs:
       - run: php tests/regression.php
       - run: php -n -d extension=gd tests/regression.php
       - run: node --check assets/js/admin.js
+  wordpress:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: wio_test_only
+          MYSQL_DATABASE: wordpress
+        ports: ['3306:3306']
+        options: --health-cmd="mysqladmin ping -pwio_test_only" --health-interval=10s --health-timeout=5s --health-retries=10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: gd, imagick, mysqli
+          tools: wp-cli
+          coverage: none
+      - name: Install disposable WordPress
+        run: |
+          wp core download --version=7.1.4 --path=/tmp/wio-wordpress
+          wp config create --path=/tmp/wio-wordpress --dbname=wordpress --dbuser=root --dbpass=wio_test_only --dbhost=127.0.0.1:3306
+          wp core install --path=/tmp/wio-wordpress --url=http://wio.test --title=WIO --admin_user=wio --admin_password=wio_test_only --admin_email=wio@example.invalid --skip-email
+      - name: Verify real WordPress media lifecycle
+        env:
+          WIO_DISPOSABLE_TEST_SITE: 'yes'
+          WIO_WP_ROOT: /tmp/wio-wordpress
+        run: php tests/wordpress-integration.php
   release:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: test
+    needs: [test, wordpress]
     runs-on: ubuntu-latest
     permissions:
       contents: write

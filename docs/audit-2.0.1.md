@@ -27,11 +27,13 @@ Baseline: main at ae004f5 (published v2.0.0). Reviewed all plugin PHP, JavaScrip
 
 `tests/regression.php` uses real GD/ImageMagick encoders and isolated doubles for WordPress storage and HTTP. It tests success and failure behavior; it is not a complete WordPress integration suite. Run `php tests/regression.php` and `php -n -d extension=gd tests/regression.php` with GD installed; the first also exercises ImageMagick when loaded. PHP/JS syntax checks are required. CI repeats these on PHP 7.0, 8.3, and 8.4 before publishing a version bump merged into main.
 
-No production site was accessed or modified. No paid AI requests were made. Browser UI, actual WordPress database behavior, multisite, offloaded media, and provider authentication still need staging verification. Rollback to the previous plugin release changes code only; converting media is a separate data operation. Back up uploads and database before a large migration.
+Additional verification: 11 real WordPress integration checks passed locally on WordPress 7.1.4 / PHP 8.3.6 with SQLite, exercising sideloads, metadata, thumbnail regeneration, source retention, same-basename deletion, and metadata-storage rejection rollback. CI also runs this suite against a disposable MySQL-backed WordPress 7.1.4 site.
+
+No production site was accessed or modified. No paid AI requests were made. Browser UI, multisite, offloaded media, and provider authentication still need staging verification. Rollback to the previous plugin release changes code only; converting media is a separate data operation. Back up uploads and database before a large migration.
 
 ## Remaining improvements
 
-1. Add a full WordPress integration suite for upload/sideload/REST, thumbnails, metadata failure, multisite, and attachment deletion. Add a browser test for the Media Library and bulk controls.
+1. Extend the WordPress integration suite to cover REST uploads, multisite, offloaded media, and minimum-version WordPress. Add a browser test for the Media Library and bulk controls.
 2. Refresh provider model defaults against each provider's current catalog. Gemini 2.0 Flash and Groq Llama 3.2 vision defaults are retired. Custom model overrides remain available; provider availability is not guaranteed by the connection test. See official https://ai.google.dev/gemini-api/docs/deprecations and https://console.groq.com/docs/deprecations . A follow-up should consolidate duplicated model configuration and test a small image, not a text greeting.
 3. Add server-side bulk job locks and paginated/resumable queues for large libraries. Current jobs require the browser tab to stay open and should run in one tab at a time.
 4. Clarify that recorded bytes saved compares source and encoded main-image sizes; keeping originals and thumbnails may increase actual disk usage. Historical upload savings cannot be reconstructed reliably.

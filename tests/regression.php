@@ -85,7 +85,8 @@ try {
     check($admin->sanitize_settings(['ai_provider' => 'google'])['ai_api_key'] === '', 'Switching providers does not reuse the previous secret');
     check($admin->sanitize_settings(['ai_provider' => 'openai'])['ai_api_key'] === 'secret', 'Unchanged provider retains its saved key');
     $r = $image->convert_to_webp($f, 'image/png', $options);
-    check($r['success'] && getimagesize($r['webp_path'])['mime'] === 'image/webp', 'Real image converts into decodable WebP');
+    $decoded = $r['success'] ? imagecreatefromwebp($r['webp_path']) : false;
+    check($decoded && imagesx($decoded) === 160 && imagesy($decoded) === 100, 'Real image converts into decodable WebP: ' . json_encode($r));
     check(is_file($f), 'Conversion primitive preserves source');
     $bad = $root . '/bad.png'; file_put_contents($bad, 'not an image');
     check(!$image->convert_to_webp($bad, 'image/png', $options)['success'], 'Corrupt image returns failure without uncaught exception');

@@ -13,6 +13,6 @@ WebP Image Optimizer 2.0.1 fixes file cleanup, bulk conversion, upload tracking,
 - Fix bulk retry queues, stopped progress, and the Media Library alt field selector.
 - Correct the minimum WordPress version to 5.8, which introduced core WebP support.
 
-Verification: isolated regression tests with real image encoding and WordPress API doubles, plus PHP and JavaScript syntax checks. Live provider calls and a full WordPress browser walkthrough were not performed. See docs/audit-2.0.1.md for remaining improvements and limitations.
+Verification: isolated regression tests with real image encoding and WordPress API doubles, plus PHP and JavaScript syntax checks. An additional 11 real WordPress media lifecycle checks passed locally on WordPress 7.1.4 with SQLite; CI also runs them with MySQL. Live provider calls and a WordPress browser walkthrough were not performed. See docs/audit-2.0.1.md for remaining improvements and limitations.
 
 Install the attached plugin ZIP through Plugins > Add New > Upload Plugin. Existing source URLs remain available after bulk conversion; this release does not rewrite URLs already embedded in content. Older untracked retained files are deliberately left untouched.
