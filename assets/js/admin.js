@@ -75,12 +75,14 @@
     }
 
     $startBtn.on('click', function(){
+      if (bulkRunning) return;
       var ids = $(this).data('ids');
       if (!ids || !ids.length) {
         $pText.text(wioAdmin.labels.no_images || 'No eligible images found.');
         $progress.show();
         return;
       }
+      if (!window.confirm(wioAdmin.labels.confirm_bulk)) return;
       bulkRunning = true;
       bulkStopped = false;
       $startBtn.prop('disabled', true);
@@ -110,6 +112,8 @@
         }, function(res){
           if (res.success) {
             doneCount++;
+            $startBtn.data('ids', $startBtn.data('ids').filter(function(id){ return id !== ids[i]; }));
+            $eligible.text($startBtn.data('ids').length);
             totalSaved += (res.data.bytes_saved || 0);
             addLog('#' + ids[i] + ' — ' + (res.data.message || 'OK'), 'wio-log-ok');
           } else {
@@ -130,7 +134,7 @@
 
       function finish(){
         bulkRunning = false;
-        $fill.css('width', '100%');
+        $fill.css('width', Math.round((doneCount + skipCount) / total * 100) + '%');
         $pText.text(bulkStopped ? (wioAdmin.labels.stopped || 'Stopped.') : (wioAdmin.labels.complete || 'Done!') + ' ' + doneCount + ' converted, ' + skipCount + ' skipped.');
         $startBtn.prop('disabled', false);
         $stopBtn.hide();
@@ -325,6 +329,7 @@
     }
 
     $aiStartBtn.on('click', function(){
+      if (aiBulkRunning) return;
       var ids = $(this).data('ids');
       if (!ids || !ids.length) {
         $aiPText.text('No images with missing alt text found.');
@@ -359,6 +364,8 @@
         }, function(res){
           if (res.success) {
             doneCount++;
+            $aiStartBtn.data('ids', $aiStartBtn.data('ids').filter(function(id){ return id !== ids[i]; }));
+            $aiEligible.text($aiStartBtn.data('ids').length);
             addAiLog('#' + ids[i] + ' \u2014 ' + (res.data.alt_text || 'OK'), 'wio-log-ok');
           } else {
             failCount++;
@@ -377,7 +384,7 @@
 
       function finishAi(){
         aiBulkRunning = false;
-        $aiFill.css('width', '100%');
+        $aiFill.css('width', Math.round((doneCount + failCount) / total * 100) + '%');
         $aiPText.text(aiBulkStopped ? 'Stopped.' : 'Done! ' + doneCount + ' generated, ' + failCount + ' failed.');
         $aiStartBtn.prop('disabled', false);
         $aiStopBtn.hide();
@@ -409,7 +416,7 @@
         if (res.success) {
           $result.css('color', '#46b450').text('\u2713 ' + res.data.alt_text);
           // Update the alt text field if visible
-          var $altField = $btn.closest('.compat-item').parent().find('[data-setting="alt"] textarea, [name="_wp_attachment_image_alt"]');
+          var $altField = $btn.closest('.attachment-details, .attachment-info, #post').find('[data-setting="alt"] textarea, [data-setting="alt"] input, [name="_wp_attachment_image_alt"]');
           if ($altField.length) {
             $altField.val(res.data.alt_text).trigger('change');
           }

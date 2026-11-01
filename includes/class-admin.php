@@ -99,7 +99,7 @@ class Admin
         if (isset($input['allowed_types']) && is_array($input['allowed_types'])) {
             $output['allowed_types'] = array_values(array_intersect($input['allowed_types'], $valid_types));
         } else {
-            $output['allowed_types'] = $defaults['allowed_types'];
+            $output['allowed_types'] = [];
         }
         $output['set_alt_text']  = !empty($input['set_alt_text']);
         $output['png_lossless']  = !empty($input['png_lossless']);
@@ -111,12 +111,14 @@ class Admin
             ? $input['ai_provider'] : 'nvidia';
 
         // Only update API key if a new value was submitted (not the placeholder)
-        if (isset($input['ai_api_key']) && $input['ai_api_key'] !== '' && strpos($input['ai_api_key'], '••••') === false) {
+        if (!empty($input['ai_clear_key'])) {
+            $output['ai_api_key'] = '';
+        } elseif (isset($input['ai_api_key']) && $input['ai_api_key'] !== '' && strpos($input['ai_api_key'], '••••') === false) {
             $output['ai_api_key'] = sanitize_text_field($input['ai_api_key']);
         } else {
             // Keep existing key
             $existing = get_option('webp_image_optimizer_settings');
-            $output['ai_api_key'] = isset($existing['ai_api_key']) ? $existing['ai_api_key'] : '';
+            $output['ai_api_key'] = isset($existing['ai_api_key']) && ($existing['ai_provider'] ?? 'nvidia') === $output['ai_provider'] ? $existing['ai_api_key'] : '';
         }
 
         $output['ai_model']  = isset($input['ai_model']) ? sanitize_text_field($input['ai_model']) : '';
@@ -137,7 +139,7 @@ class Admin
             <input type="checkbox" name="webp_image_optimizer_settings[retain_original]" <?php checked(isset($options['retain_original']) ? $options['retain_original'] : true); ?> value="1">
             <?php _e('Keep the original image after conversion to WebP.', 'webp-image-optimizer'); ?>
         </label>
-        <p class="description"><?php _e('If unchecked, the original image will be deleted after successful conversion.', 'webp-image-optimizer'); ?></p>
+        <p class="description"><?php _e('If unchecked, new upload sources are deleted after conversion. Bulk conversion always preserves existing files and URLs.', 'webp-image-optimizer'); ?></p>
 <?php
     }
 
@@ -276,6 +278,7 @@ class Admin
                         <th><label for="wio-ai-key"><?php _e('API Key', 'webp-image-optimizer'); ?></label></th>
                         <td>
                             <input type="password" name="webp_image_optimizer_settings[ai_api_key]" id="wio-ai-key" value="<?php echo esc_attr($masked_key); ?>" class="regular-text" autocomplete="off" placeholder="<?php esc_attr_e('Paste your API key…', 'webp-image-optimizer'); ?>">
+                            <label><input type="checkbox" name="webp_image_optimizer_settings[ai_clear_key]" value="1"> <?php _e('Remove saved API key', 'webp-image-optimizer'); ?></label>
                             <button type="button" class="button" id="wio-ai-test"><?php _e('Test Connection', 'webp-image-optimizer'); ?></button>
                             <span id="wio-ai-test-result"></span>
                             <p class="description">
@@ -330,8 +333,8 @@ class Admin
                     <h1><span class="dashicons dashicons-images-alt2"></span> <?php _e('WebP Image Optimizer', 'webp-image-optimizer'); ?></h1>
                 </div>
                 <div class="wio-header__badge">
-                    <span class="wio-engine-badge wio-engine-badge--<?php echo $engine !== 'none' ? 'ok' : 'error'; ?>">
-                        <span class="dashicons dashicons-<?php echo $engine !== 'none' ? 'yes-alt' : 'warning'; ?>"></span>
+                    <span class="wio-engine-badge wio-engine-badge--<?php echo $engine !== 'None' ? 'ok' : 'error'; ?>">
+                        <span class="dashicons dashicons-<?php echo $engine !== 'None' ? 'yes-alt' : 'warning'; ?>"></span>
                         <?php printf(__('Engine: %s', 'webp-image-optimizer'), esc_html(ucfirst($engine))); ?>
                     </span>
                     <span class="wio-engine-formats"><?php echo esc_html(implode(', ', $supported)); ?></span>
@@ -366,7 +369,7 @@ class Admin
             <div class="wio-tab-content <?php echo $active_tab === 'bulk' ? 'wio-tab-content--active' : ''; ?>" id="wio-panel-bulk" role="tabpanel">
                 <div class="wio-card">
                     <h2><?php _e('Bulk Convert Existing Images', 'webp-image-optimizer'); ?></h2>
-                    <p class="wio-card__desc"><?php _e('Convert all eligible images in your Media Library to WebP format. Images already in WebP will be skipped. This process runs in the background one image at a time to avoid server timeouts.', 'webp-image-optimizer'); ?></p>
+                    <p class="wio-card__desc"><?php _e('Convert all eligible images in your Media Library to WebP format. Images already in WebP will be skipped. Keep this browser tab open. Images are processed one at a time; existing source files and thumbnails are preserved so published URLs continue to work.', 'webp-image-optimizer'); ?></p>
 
                     <div class="wio-bulk-status" id="wio-bulk-status">
                         <div class="wio-bulk-counts">

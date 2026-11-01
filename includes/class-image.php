@@ -7,6 +7,7 @@ if (!defined('ABSPATH')) exit;
 class Image
 {
     private static $instance = null;
+    private $pending_uploads = [];
 
     public static function get_instance()
     {
@@ -50,7 +51,7 @@ class Image
             'quality'         => isset($options['quality']) ? max(0, min(100, intval($options['quality']))) : 80,
             'method'          => isset($options['method']) ? max(0, min(6, intval($options['method']))) : 6,
             'retain_original' => isset($options['retain_original']) ? (bool) $options['retain_original'] : true,
-            'allowed_types'   => isset($options['allowed_types']) && !empty($options['allowed_types']) ? $options['allowed_types'] : ['image/jpeg', 'image/png', 'image/gif'],
+            'allowed_types'   => isset($options['allowed_types']) && is_array($options['allowed_types']) ? $options['allowed_types'] : ['image/jpeg', 'image/png', 'image/gif'],
             'png_lossless'    => isset($options['png_lossless']) ? (bool) $options['png_lossless'] : false,
             'set_alt_text'    => isset($options['set_alt_text']) ? (bool) $options['set_alt_text'] : true,
             'ai_alt_text'     => isset($options['ai_alt_text']) ? (bool) $options['ai_alt_text'] : false,
@@ -89,61 +90,84 @@ class Image
             return ['success' => false, 'message' => 'File exceeds size threshold (' . size_format($file_size) . ')'];
         }
 
+        // Without a frame-aware decoder, preserve GIFs rather than flatten animation.
+        if ($mime_type === 'image/gif' && !extension_loaded('imagick')) {
+            return ['success' => false, 'message' => 'GIF conversion requires ImageMagick to check animation'];
+        }
+
         // Skip animated GIFs
-        if ($mime_type === 'image/gif' && extension_loaded('imagick')) {
-            $gif_check = null;
-            try {
-                $gif_check = new \Imagick($file_path);
-                if ($gif_check->getNumberImages() > 1) {
-                    return ['success' => false, 'message' => 'Animated GIF'];
-                }
-            } finally {
-                if ($gif_check) {
-                    $gif_check->clear();
-                    $gif_check->destroy();
+        try {
+            if ($mime_type === 'image/gif' && extension_loaded('imagick')) {
+                $gif_check = null;
+                try {
+                    $gif_check = new \Imagick($file_path);
+                    if ($gif_check->getNumberImages() > 1) {
+                        return ['success' => false, 'message' => 'Animated GIF'];
+                    }
+                } finally {
+                    if ($gif_check) {
+                        $gif_check->clear();
+                        $gif_check->destroy();
+                    }
                 }
             }
+
+        } catch (\Throwable $e) {
+            return ['success' => false, 'message' => 'Unable to read image'];
         }
 
         $new_file_path = null;
 
-        if (extension_loaded('imagick')) {
-            $image = new \Imagick($file_path);
-            try {
-                $image->setImageFormat('webp');
-                $image->stripImage();
-                if ($mime_type === 'image/png') {
-                    $image->setOption('webp:lossless', $png_lossless ? 'true' : 'false');
+        try {
+            if (extension_loaded('imagick') && \Imagick::queryFormats('WEBP')) {
+                $image = new \Imagick($file_path);
+                try {
+                    if (method_exists($image, 'autoOrientImage')) {
+                        $image->autoOrientImage();
+                    }
+                    if ($image->getNumberImages() > 1) return ['success' => false, 'message' => 'Multi-frame image preserved'];
+                    $image->setImageFormat('webp');
+                    $image->stripImage();
+                    if ($mime_type === 'image/png') {
+                        $image->setOption('webp:lossless', $png_lossless ? 'true' : 'false');
+                    }
+                    $image->setOption('webp:method', $method);
+                    $image->setImageCompressionQuality($quality);
+                    $new_file_path = $file_info['dirname'] . '/' . wp_unique_filename($file_info['dirname'], $file_info['filename'] . '.webp');
+                    if (!$image->writeImage($new_file_path)) {
+                        if (file_exists($new_file_path)) wp_delete_file($new_file_path);
+                        return ['success' => false, 'message' => 'Imagick write failed'];
+                    }
+                } finally {
+                    $image->clear();
+                    $image->destroy();
                 }
-                $image->setOption('webp:method', $method);
-                $image->setImageCompressionQuality($quality);
+            } elseif (extension_loaded('gd')) {
+                $image_editor = wp_get_image_editor($file_path);
+                if (is_wp_error($image_editor)) {
+                    return ['success' => false, 'message' => 'GD editor error: ' . $image_editor->get_error_message()];
+                }
+                if ($mime_type === 'image/png' && $png_lossless && defined('WP_DEBUG') && WP_DEBUG) {
+                    error_log('WIO: GD does not support true lossless WebP. Using quality 100 as approximation.');
+                }
+                $gd_quality = ($mime_type === 'image/png' && $png_lossless) ? 100 : $quality;
+                if (method_exists($image_editor, 'set_quality')) {
+                    $image_editor->set_quality($gd_quality);
+                }
                 $new_file_path = $file_info['dirname'] . '/' . wp_unique_filename($file_info['dirname'], $file_info['filename'] . '.webp');
-                if (!$image->writeImage($new_file_path)) {
-                    return ['success' => false, 'message' => 'Imagick write failed'];
+                if (method_exists($image_editor, 'maybe_exif_rotate')) $image_editor->maybe_exif_rotate();
+                $saved_image = $image_editor->save($new_file_path, 'image/webp');
+                if (is_wp_error($saved_image)) {
+                    if (file_exists($new_file_path)) wp_delete_file($new_file_path);
+                    return ['success' => false, 'message' => 'GD save error: ' . $saved_image->get_error_message()];
                 }
-            } finally {
-                $image->clear();
-                $image->destroy();
+            } else {
+                return ['success' => false, 'message' => 'No image engine available'];
             }
-        } elseif (extension_loaded('gd')) {
-            $image_editor = wp_get_image_editor($file_path);
-            if (is_wp_error($image_editor)) {
-                return ['success' => false, 'message' => 'GD editor error: ' . $image_editor->get_error_message()];
-            }
-            if ($mime_type === 'image/png' && $png_lossless && defined('WP_DEBUG') && WP_DEBUG) {
-                error_log('WIO: GD does not support true lossless WebP. Using quality 100 as approximation.');
-            }
-            $gd_quality = ($mime_type === 'image/png' && $png_lossless) ? 100 : $quality;
-            if (method_exists($image_editor, 'set_quality')) {
-                $image_editor->set_quality($gd_quality);
-            }
-            $new_file_path = $file_info['dirname'] . '/' . wp_unique_filename($file_info['dirname'], $file_info['filename'] . '.webp');
-            $saved_image = $image_editor->save($new_file_path, 'image/webp');
-            if (is_wp_error($saved_image)) {
-                return ['success' => false, 'message' => 'GD save error: ' . $saved_image->get_error_message()];
-            }
-        } else {
-            return ['success' => false, 'message' => 'No image engine available'];
+
+        } catch (\Throwable $e) {
+            if ($new_file_path && file_exists($new_file_path)) wp_delete_file($new_file_path);
+            return ['success' => false, 'message' => 'Image conversion failed'];
         }
 
         if (!$new_file_path || !file_exists($new_file_path)) {
@@ -154,7 +178,7 @@ class Image
         $webp_size     = filesize($new_file_path);
 
         // If WebP is larger, discard it
-        if ($webp_size >= $original_size) {
+        if (!$webp_size || $webp_size >= $original_size) {
             wp_delete_file($new_file_path);
             return ['success' => false, 'message' => 'WebP larger than original'];
         }
@@ -205,8 +229,11 @@ class Image
                 wp_delete_file($file_path);
             }
 
-            // Store bytes saved temporarily; will be saved to postmeta on add_attachment
-            $upload['_wio_bytes_saved'] = $bytes_saved;
+            // WordPress does not carry custom upload fields into attachment metadata.
+            $this->pending_uploads[$result['webp_path']] = [
+                'bytes_saved' => $bytes_saved,
+                'original' => $settings['retain_original'] ? $file_path : '',
+            ];
 
             /**
              * Fires after a newly uploaded image is converted to WebP.
@@ -216,7 +243,7 @@ class Image
              */
             do_action('wio_after_conversion', $upload, $result);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             if (defined('WP_DEBUG') && WP_DEBUG) {
                 error_log('WIO: Exception during conversion - ' . $e->getMessage());
             }
@@ -232,6 +259,7 @@ class Image
      */
     public function convert_existing($attachment_id)
     {
+        if (!wp_attachment_is_image($attachment_id)) return ['success' => false, 'message' => 'Not an image'];
         $file = get_attached_file($attachment_id);
         if (!$file || !file_exists($file)) {
             return ['success' => false, 'message' => 'File not found'];
@@ -240,6 +268,7 @@ class Image
         $mime = get_post_mime_type($attachment_id);
         $settings = $this->get_settings();
 
+        if (!in_array($mime, $settings['allowed_types'], true)) return ['success' => false, 'message' => 'Type not allowed'];
         $result = $this->convert_to_webp($file, $mime, $settings);
         if (!$result['success']) {
             return $result;
@@ -248,26 +277,46 @@ class Image
         $webp_path   = $result['webp_path'];
         $bytes_saved = $result['original_size'] - $result['webp_size'];
 
-        // Update the attachment to point to the WebP file
-        $uploads = wp_upload_dir();
-        $relative_path = str_replace($uploads['basedir'] . '/', '', $webp_path);
-        update_attached_file($attachment_id, $webp_path);
-        wp_update_post([
-            'ID'             => $attachment_id,
-            'post_mime_type' => 'image/webp',
-        ]);
-
-        // Regenerate metadata for the new file
-        $metadata = wp_generate_attachment_metadata($attachment_id, $webp_path);
-        wp_update_attachment_metadata($attachment_id, $metadata);
-
-        // Store bytes saved
-        update_post_meta($attachment_id, '_wio_bytes_saved', $bytes_saved);
-
-        // Delete original if setting says so
-        if (!$settings['retain_original'] && file_exists($file) && $file !== $webp_path) {
-            wp_delete_file($file);
+        // Preserve previous URLs, including thumbnails already embedded in content.
+        // The retain-original setting only deletes sources for NEW uploads.
+        $old_metadata = wp_get_attachment_metadata($attachment_id);
+        $old_files = [$file];
+        if (!empty($old_metadata['sizes'])) {
+            foreach ($old_metadata['sizes'] as $size) {
+                if (!empty($size['file'])) $old_files[] = dirname($file) . '/' . basename($size['file']);
+            }
         }
+        if (!empty($old_metadata['original_image'])) {
+            $old_files[] = dirname($file) . '/' . basename($old_metadata['original_image']);
+        }
+        if (!function_exists('wp_generate_attachment_metadata')) {
+            require_once ABSPATH . 'wp-admin/includes/image.php';
+        }
+        try {
+            if (!update_attached_file($attachment_id, $webp_path)) {
+                throw new \RuntimeException('Unable to update attachment path');
+            }
+            $updated = wp_update_post(['ID' => $attachment_id, 'post_mime_type' => 'image/webp'], true);
+            if (is_wp_error($updated) || !$updated) throw new \RuntimeException('Unable to update attachment');
+            $metadata = wp_generate_attachment_metadata($attachment_id, $webp_path);
+            if (empty($metadata['width']) || empty($metadata['height'])) {
+                throw new \RuntimeException('Unable to generate image metadata');
+            }
+            wp_update_attachment_metadata($attachment_id, $metadata);
+            $saved_metadata = wp_get_attachment_metadata($attachment_id);
+            if (empty($saved_metadata['width']) || empty($saved_metadata['height'])
+                || $saved_metadata['width'] != $metadata['width'] || $saved_metadata['height'] != $metadata['height']) {
+                throw new \RuntimeException('Unable to save image metadata');
+            }
+        } catch (\Throwable $e) {
+            update_attached_file($attachment_id, $file);
+            wp_update_post(['ID' => $attachment_id, 'post_mime_type' => $mime]);
+            wp_update_attachment_metadata($attachment_id, $old_metadata);
+            wp_delete_file($webp_path);
+            return ['success' => false, 'message' => 'Attachment update failed; original preserved'];
+        }
+        $this->remember_retained_files($attachment_id, $old_files);
+        update_post_meta($attachment_id, '_wio_bytes_saved', $bytes_saved);
 
         // Clear stats cache
         delete_transient('wio_stats');
@@ -293,6 +342,19 @@ class Image
      */
     public function set_image_alt_text_on_metadata($metadata, $attachment_id, $context = 'create')
     {
+        $attached = get_attached_file($attachment_id);
+        $upload_path = $attached;
+        if (!empty($metadata['original_image']) && $attached) {
+            $upload_path = dirname($attached) . '/' . basename($metadata['original_image']);
+        }
+        if (isset($this->pending_uploads[$upload_path])) {
+            $pending = $this->pending_uploads[$upload_path];
+            update_post_meta($attachment_id, '_wio_bytes_saved', $pending['bytes_saved']);
+            if ($pending['original']) $this->remember_retained_files($attachment_id, [$pending['original']]);
+            unset($this->pending_uploads[$upload_path]);
+            delete_transient('wio_stats');
+        }
+
         $is_debug = defined('WP_DEBUG') && WP_DEBUG;
 
         if ($is_debug) {
@@ -311,7 +373,7 @@ class Image
         }
 
         $settings = $this->get_settings();
-        if (!$settings['set_alt_text']) {
+        if (!$settings['set_alt_text'] && !$settings['ai_alt_text']) {
             if ($is_debug) error_log('WIO AI: Skipped — set_alt_text is disabled');
             return $metadata;
         }
@@ -349,6 +411,8 @@ class Image
                 error_log('WIO AI: AI disabled or no key — ai_alt_text=' . ($settings['ai_alt_text'] ? 'true' : 'false') . ' api_key=' . (!empty($settings['ai_api_key']) ? '(set, ' . strlen($settings['ai_api_key']) . ' chars)' : '(empty)'));
             }
         }
+
+        if (!$settings['set_alt_text']) return $metadata;
 
         // Fallback: derive alt text from filename
         $filename = get_the_title($attachment_id);
@@ -410,6 +474,7 @@ class Image
         }
 
         // Read and encode image
+        if (!is_readable($file_path) || filesize($file_path) > 4 * 1024 * 1024) return '';
         $image_data = file_get_contents($file_path);
         if ($image_data === false) {
             return '';
@@ -486,64 +551,13 @@ class Image
         $resp_body = wp_remote_retrieve_body($response);
         $data = json_decode($resp_body, true);
 
-        if (defined('WP_DEBUG') && WP_DEBUG) {
-            error_log('WIO AI: HTTP ' . $code . ' Response (first 500 chars): ' . substr($resp_body, 0, 500));
-        }
 
         if ($code !== 200 || empty($data['choices'][0]['message']['content'])) {
-            // Some reasoning models (e.g. nemotron) put output in 'reasoning' and leave 'content' null.
-            // Try to extract a usable sentence from the reasoning field.
-            if ($code === 200 && !empty($data['choices'][0]['message']['reasoning'])) {
-                $reasoning = trim($data['choices'][0]['message']['reasoning']);
-                if (defined('WP_DEBUG') && WP_DEBUG) {
-                    error_log('WIO AI: content was null but reasoning found (' . strlen($reasoning) . ' chars). Attempting to extract alt text from reasoning.');
-                }
-                // Try to find a quoted string that looks like the final alt text
-                if (preg_match('/["\']([A-Z][^"\'\']{10,124})["\'\']/u', $reasoning, $m)) {
-                    $alt = trim($m[1]);
-                    if (mb_strlen($alt) > 10) {
-                        if (defined('WP_DEBUG') && WP_DEBUG) {
-                            error_log('WIO AI: Extracted from reasoning: "' . $alt . '"');
-                        }
-                        if (mb_strlen($alt) > 125) {
-                            $alt = mb_substr($alt, 0, 122) . '...';
-                        }
-                        return $alt;
-                    }
-                }
-                // If no quoted string, grab the last sentence as a heuristic
-                $sentences = preg_split('/(?<=[.!?])\s+/', $reasoning, -1, PREG_SPLIT_NO_EMPTY);
-                if (!empty($sentences)) {
-                    $last = trim(end($sentences), '"\'\'\n\r ');
-                    if (mb_strlen($last) >= 10 && mb_strlen($last) <= 200) {
-                        if (defined('WP_DEBUG') && WP_DEBUG) {
-                            error_log('WIO AI: Using last sentence from reasoning: "' . $last . '"');
-                        }
-                        if (mb_strlen($last) > 125) {
-                            $last = mb_substr($last, 0, 122) . '...';
-                        }
-                        return $last;
-                    }
-                }
-                if (defined('WP_DEBUG') && WP_DEBUG) {
-                    error_log('WIO AI: Could not extract usable alt text from reasoning.');
-                }
-            }
-            if (defined('WP_DEBUG') && WP_DEBUG) {
-                error_log('WIO AI: Failed — HTTP ' . $code . ' — no usable content found');
-            }
+            // Only final model output is suitable for published alt text.
             return '';
         }
 
-        $alt = trim($data['choices'][0]['message']['content']);
-        // Strip wrapping quotes if present
-        $alt = trim($alt, '"\'\'');
-        // Enforce 125 char limit
-        if (mb_strlen($alt) > 125) {
-            $alt = mb_substr($alt, 0, 122) . '...';
-        }
-
-        return $alt;
+        return $this->clean_alt_text($data['choices'][0]['message']['content']);
     }
 
     /**
@@ -585,18 +599,12 @@ class Image
 
         if ($code !== 200 || empty($data['candidates'][0]['content']['parts'][0]['text'])) {
             if (defined('WP_DEBUG') && WP_DEBUG) {
-                error_log('WIO AI Gemini: HTTP ' . $code . ' — ' . wp_json_encode($data));
+                error_log('WIO AI Gemini: HTTP ' . $code);
             }
             return '';
         }
 
-        $alt = trim($data['candidates'][0]['content']['parts'][0]['text']);
-        $alt = trim($alt, '"\'\'');
-        if (mb_strlen($alt) > 125) {
-            $alt = mb_substr($alt, 0, 122) . '...';
-        }
-
-        return $alt;
+        return $this->clean_alt_text($data['candidates'][0]['content']['parts'][0]['text']);
     }
 
     /**
@@ -642,18 +650,12 @@ class Image
 
         if ($code !== 200 || empty($data['content'][0]['text'])) {
             if (defined('WP_DEBUG') && WP_DEBUG) {
-                error_log('WIO AI Claude: HTTP ' . $code . ' — ' . substr(wp_json_encode($data), 0, 500));
+                error_log('WIO AI Claude: HTTP ' . $code);
             }
             return '';
         }
 
-        $alt = trim($data['content'][0]['text']);
-        $alt = trim($alt, '"\'\'\'');
-        if (mb_strlen($alt) > 125) {
-            $alt = mb_substr($alt, 0, 122) . '...';
-        }
-
-        return $alt;
+        return $this->clean_alt_text($data['content'][0]['text']);
     }
 
     /**
@@ -791,77 +793,49 @@ class Image
         return ['success' => true, 'message' => $alt, 'alt_text' => $alt];
     }
 
+    private function clean_alt_text($text)
+    {
+        if (!is_string($text)) return '';
+        $text = trim(sanitize_text_field($text), "\"' ");
+        $characters = preg_split('//u', $text, -1, PREG_SPLIT_NO_EMPTY);
+        if ($characters === false) return '';
+        return count($characters) > 125 ? implode('', array_slice($characters, 0, 122)) . '...' : $text;
+    }
+
+    private function remember_retained_files($attachment_id, $files)
+    {
+        $base = realpath(wp_upload_dir()['basedir']);
+        if (!$base) return;
+        $stored = get_post_meta($attachment_id, '_wio_retained_files', true);
+        $stored = is_array($stored) ? $stored : [];
+        foreach ($files as $file) {
+            $path = realpath($file);
+            if ($path && strpos($path, $base . DIRECTORY_SEPARATOR) === 0) {
+                $stored[] = substr($path, strlen($base) + 1);
+            }
+        }
+        update_post_meta($attachment_id, '_wio_retained_files', array_values(array_unique($stored)));
+    }
+
     public function delete_related_files_on_remove($post_ID)
     {
-        $file = get_attached_file($post_ID);
-        if (!$file) return;
-        $file_info = pathinfo($file);
-        $base_dir  = $file_info['dirname'];
-        $base_name = $file_info['filename'];
-        $extensions = WIO_SUPPORTED_EXTENSIONS;
-
-        // Delete all files with the same base name and allowed extensions
-        foreach ($extensions as $ext) {
-            $candidate = $base_dir . DIRECTORY_SEPARATOR . $base_name . '.' . $ext;
-            if (file_exists($candidate)) {
-                wp_delete_file($candidate);
+        // Core owns the active file and its metadata-listed sizes. Never guess filenames:
+        // photo.png, photo.jpg and photo-300x200.jpg can be independent attachments.
+        $files = get_post_meta($post_ID, '_wio_retained_files', true);
+        $base = realpath(wp_upload_dir()['basedir']);
+        if ($base && is_array($files)) {
+            global $wpdb;
+            foreach ($files as $relative) {
+                if (!is_string($relative)) continue;
+                $path = realpath($base . '/' . $relative);
+                if (!$path || strpos($path, $base . DIRECTORY_SEPARATOR) !== 0) continue;
+                $shared = $wpdb->get_var($wpdb->prepare(
+                    "SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key = '_wp_attached_file' AND meta_value = %s AND post_id <> %d LIMIT 1",
+                    $relative, $post_ID
+                ));
+                if (!$shared) wp_delete_file($path);
             }
         }
-
-        // Use WordPress attachment metadata to find all registered intermediate sizes
-        $metadata = wp_get_attachment_metadata($post_ID);
-        $deleted_files = [];
-        if (!empty($metadata['sizes']) && is_array($metadata['sizes'])) {
-            foreach ($metadata['sizes'] as $size_data) {
-                if (!empty($size_data['file'])) {
-                    $thumb_path = $base_dir . DIRECTORY_SEPARATOR . $size_data['file'];
-                    if (file_exists($thumb_path) && !isset($deleted_files[$thumb_path])) {
-                        wp_delete_file($thumb_path);
-                        $deleted_files[$thumb_path] = true;
-                    }
-                    $thumb_webp = preg_replace('/\.[^.]+$/', '.webp', $thumb_path);
-                    if ($thumb_webp !== $thumb_path && file_exists($thumb_webp) && !isset($deleted_files[$thumb_webp])) {
-                        wp_delete_file($thumb_webp);
-                        $deleted_files[$thumb_webp] = true;
-                    }
-                }
-            }
-        }
-
-        // Catch -scaled and -rotated variants
-        $suffixes = ['-scaled', '-rotated'];
-        foreach ($extensions as $ext) {
-            foreach ($suffixes as $suffix) {
-                $candidate = $base_dir . DIRECTORY_SEPARATOR . $base_name . $suffix . '.' . $ext;
-                if (file_exists($candidate) && !isset($deleted_files[$candidate])) {
-                    wp_delete_file($candidate);
-                    $deleted_files[$candidate] = true;
-                }
-            }
-        }
-
-        // Fallback glob for remaining WP thumbnail patterns
-        foreach ($extensions as $tExt) {
-            $pattern = $base_dir . DIRECTORY_SEPARATOR . $base_name . '-*.' . $tExt;
-            foreach (glob($pattern) as $thumb) {
-                if (!isset($deleted_files[$thumb]) && preg_match('/-\d+x\d+\.' . preg_quote($tExt, '/') . '$/', $thumb)) {
-                    wp_delete_file($thumb);
-                    $deleted_files[$thumb] = true;
-                }
-            }
-        }
-
-        // Delete the original file stored in meta if different
-        $meta_file = get_post_meta($post_ID, '_wp_attached_file', true);
-        if ($meta_file) {
-            $uploads = wp_upload_dir();
-            $original_path = $uploads['basedir'] . DIRECTORY_SEPARATOR . $meta_file;
-            if (file_exists($original_path) && $original_path !== $file) {
-                wp_delete_file($original_path);
-            }
-        }
-
-        // Clean up bytes-saved meta
-        delete_post_meta($post_ID, '_wio_bytes_saved');
+        delete_transient('wio_stats');
     }
 }

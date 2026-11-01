@@ -8,17 +8,17 @@ if (!defined('ABSPATH')) exit;
  * Description: Automatically converts uploaded images to WebP format with bulk conversion, 
  * statistics dashboard, HEIF/HEIC support, and AI-powered alt text generation via 8 providers 
  * (NVIDIA Build, OpenAI, Anthropic Claude, Google Gemini, xAI Grok, Mistral, Groq, OpenRouter).
- * Version: 2.0.0
+ * Version: 2.0.1
  * Author: Arnel Go
  * Author URI: https://www.arnelbg.com/
  * License: GPLv2 or later
  * Text Domain: webp-image-optimizer
- * Requires at least: 5.0
+ * Requires at least: 5.8
  * Requires PHP: 7.0
  */
 
 // Define plugin constants
-const WIO_VERSION = '2.0.0';
+const WIO_VERSION = '2.0.1';
 define('WIO_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('WIO_PLUGIN_URL', plugin_dir_url(__FILE__));
 
@@ -88,19 +88,24 @@ class WIO_Plugin
     public static function detect_engine()
     {
         if (extension_loaded('imagick')) {
-            $supported = ['JPEG', 'PNG', 'GIF', 'BMP', 'TIFF'];
-            // Check if Imagick supports HEIC
             try {
-                $formats = \Imagick::queryFormats('HEIC');
-                if (!empty($formats)) {
-                    $supported[] = 'HEIC/HEIF';
+                if (\Imagick::queryFormats('WEBP')) {
+                    $supported = [];
+                    foreach (['JPEG', 'PNG', 'GIF', 'BMP', 'TIFF', 'HEIC', 'HEIF'] as $format) {
+                        if (\Imagick::queryFormats($format)) $supported[] = $format;
+                    }
+                    return ['engine' => 'ImageMagick', 'supported' => $supported];
                 }
-            } catch (\Exception $e) {
-                // HEIC not available
+            } catch (\Throwable $e) {
+                // Fall through to GD when the Imagick installation is unusable.
             }
-            return ['engine' => 'ImageMagick', 'supported' => $supported];
-        } elseif (extension_loaded('gd')) {
-            return ['engine' => 'GD', 'supported' => ['JPEG', 'PNG', 'GIF']];
+        }
+        if (extension_loaded('gd') && function_exists('imagewebp')) {
+            $supported = [];
+            foreach (['JPEG' => 'imagecreatefromjpeg', 'PNG' => 'imagecreatefrompng'] as $format => $reader) {
+                if (function_exists($reader)) $supported[] = $format;
+            }
+            return ['engine' => 'GD', 'supported' => $supported];
         }
         return ['engine' => 'None', 'supported' => []];
     }
@@ -187,7 +192,7 @@ class WIO_Plugin
         // If the key looks masked, use the stored one
         if (empty($api_key) || strpos($api_key, '••••') !== false) {
             $options = get_option('webp_image_optimizer_settings');
-            $api_key = isset($options['ai_api_key']) ? $options['ai_api_key'] : '';
+            $api_key = isset($options['ai_api_key']) && ($options['ai_provider'] ?? 'nvidia') === $provider ? $options['ai_api_key'] : '';
         }
 
         if (empty($api_key)) {
@@ -230,6 +235,7 @@ class WIO_Plugin
             wp_send_json_error(['message' => 'Invalid attachment ID']);
         }
 
+        if (!wp_attachment_is_image($attachment_id)) wp_send_json_error(['message' => 'Not an image']);
         $file = get_attached_file($attachment_id);
         if (!$file || !file_exists($file)) {
             wp_send_json_error(['message' => 'File not found']);
@@ -362,7 +368,7 @@ class WIO_Plugin
      */
     public function add_ai_alt_button($form_fields, $post)
     {
-        if (!wp_attachment_is_image($post->ID)) {
+        if (!current_user_can('manage_options') || !wp_attachment_is_image($post->ID)) {
             return $form_fields;
         }
 
