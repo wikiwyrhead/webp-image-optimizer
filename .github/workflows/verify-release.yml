@@ -22,7 +22,13 @@ jobs:
           coverage: none
       - run: find . -name '*.php' -not -path './.git/*' -print0 | xargs -0 -n1 php -l
       - run: php tests/regression.php
-      - run: php -n -d extension=gd.so tests/regression.php
+      - name: Verify GD without ImageMagick
+        run: |
+          if php -r 'exit(PHP_VERSION_ID < 80000 ? 0 : 1);'; then
+            php -n -d extension=json.so -d extension=gd.so tests/regression.php
+          else
+            php -n -d extension=gd.so tests/regression.php
+          fi
       - run: node --check assets/js/admin.js
   wordpress:
     runs-on: ubuntu-latest
