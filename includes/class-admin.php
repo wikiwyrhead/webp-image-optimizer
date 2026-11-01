@@ -387,7 +387,7 @@ class Admin
                             </div>
                             <div class="wio-bulk-count">
                                 <span class="wio-bulk-count__number" id="wio-bulk-saved">0 KB</span>
-                                <span class="wio-bulk-count__label"><?php _e('Saved', 'webp-image-optimizer'); ?></span>
+                                <span class="wio-bulk-count__label"><?php _e('Size reduction', 'webp-image-optimizer'); ?></span>
                             </div>
                         </div>
                     </div>
@@ -488,7 +488,8 @@ class Admin
                     <div class="wio-stat-card wio-stat-card--highlight">
                         <span class="dashicons dashicons-performance wio-stat-card__icon"></span>
                         <div class="wio-stat-card__value"><?php echo esc_html(size_format($stats['bytes_saved'])); ?></div>
-                        <div class="wio-stat-card__label"><?php _e('Space Saved', 'webp-image-optimizer'); ?></div>
+                        <div class="wio-stat-card__label"><?php _e('Estimated size reduction', 'webp-image-optimizer'); ?></div>
+                        <p><?php _e('Compares encoded image sizes. Retained originals and thumbnails still use disk space.', 'webp-image-optimizer'); ?></p>
                     </div>
                 </div>
 
@@ -524,7 +525,7 @@ class Admin
                         <ul class="wio-help-list">
                             <li><?php _e('PNG Lossless preserves pixel data and may ignore the Quality setting.', 'webp-image-optimizer'); ?></li>
                             <li><?php _e('If Imagick is unavailable, GD will be used. Some formats (e.g., TIFF/BMP/HEIC) require Imagick.', 'webp-image-optimizer'); ?></li>
-                            <li><?php _e('Retain Original keeps source files for safety. Disable to save disk space once verified.', 'webp-image-optimizer'); ?></li>
+                            <li><?php _e('Retain Original controls new upload sources. Bulk conversion always keeps existing files and URLs.', 'webp-image-optimizer'); ?></li>
                             <li><?php _e('Alt Text is derived from filenames. Fine-tune in the Media Library for key images.', 'webp-image-optimizer'); ?></li>
                             <li><?php _e('Bulk Convert processes images one at a time. You can stop and resume at any point.', 'webp-image-optimizer'); ?></li>
                         </ul>
@@ -575,7 +576,7 @@ class Admin
                                     <p><?php _e('Effort level 0 (fastest) to 6 (best compression). Only affects conversion time, not serving speed. Default 6 is safe for most servers.', 'webp-image-optimizer'); ?></p>
 
                                     <h4 id="retain-original-image"><?php _e('Retain Original Image', 'webp-image-optimizer'); ?></h4>
-                                    <p><?php _e('Keeps originals alongside WebP for rollback. Recommended initially; disable once satisfied to save disk space.', 'webp-image-optimizer'); ?></p>
+                                    <p><?php _e('Keeps new upload sources alongside WebP. Bulk conversion always preserves existing source files and thumbnails to protect published URLs.', 'webp-image-optimizer'); ?></p>
 
                                     <h4 id="allowed-image-types"><?php _e('Allowed Image Types', 'webp-image-optimizer'); ?></h4>
                                     <p><?php _e('JPEG, PNG, GIF on by default. BMP/TIFF are uncommon. HEIC/HEIF require Imagick. SVG is vector and not convertible.', 'webp-image-optimizer'); ?></p>

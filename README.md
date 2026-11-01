@@ -90,7 +90,7 @@ WebP Image Optimizer is a comprehensive WordPress plugin that converts uploaded 
 
 ### Statistics Tab
 
-View total images, WebP images, unconverted images, bytes saved, and a WebP coverage percentage bar.
+View total images, WebP images, unconverted images, estimated encoding size reduction, and WebP coverage. This compares original and encoded main-image sizes; retained originals and thumbnails still use disk space.
 
 **AI model availability:** Provider catalogs change. Retired defaults may require a custom currently supported vision model. Test Connection checks a text request, not image understanding. See the audit for provider follow-up work.
 

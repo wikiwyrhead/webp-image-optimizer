@@ -20,9 +20,9 @@ jobs:
           php-version: ${{ matrix.php }}
           extensions: gd, imagick
           coverage: none
-      - run: find . -name '*.php' -not -path './.git/*' -exec php -l {} \;
+      - run: find . -name '*.php' -not -path './.git/*' -print0 | xargs -0 -n1 php -l
       - run: php tests/regression.php
-      - run: php -n -d extension=gd tests/regression.php
+      - run: php -n -d extension=gd.so tests/regression.php
       - run: node --check assets/js/admin.js
   wordpress:
     runs-on: ubuntu-latest

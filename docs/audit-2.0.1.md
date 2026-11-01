@@ -25,7 +25,7 @@ Baseline: main at ae004f5 (published v2.0.0). Reviewed all plugin PHP, JavaScrip
 
 ## Verification
 
-`tests/regression.php` uses real GD/ImageMagick encoders and isolated doubles for WordPress storage and HTTP. It tests success and failure behavior; it is not a complete WordPress integration suite. Run `php tests/regression.php` and `php -n -d extension=gd tests/regression.php` with GD installed; the first also exercises ImageMagick when loaded. PHP/JS syntax checks are required. CI repeats these on PHP 7.0, 8.3, and 8.4 before publishing a version bump merged into main.
+`tests/regression.php` uses real GD/ImageMagick encoders and isolated doubles for WordPress storage and HTTP. It tests success and failure behavior; it is not a complete WordPress integration suite. Run `php tests/regression.php` and `php -n -d extension=gd.so tests/regression.php` with GD installed; the first also exercises ImageMagick when loaded. PHP/JS syntax checks are required. CI repeats these on PHP 7.0, 8.3, and 8.4 before publishing a version bump merged into main.
 
 Additional verification: 11 real WordPress integration checks passed locally on WordPress 7.1.4 / PHP 8.3.6 with SQLite, exercising sideloads, metadata, thumbnail regeneration, source retention, same-basename deletion, and metadata-storage rejection rollback. CI also runs this suite against a disposable MySQL-backed WordPress 7.1.4 site.
 
@@ -36,7 +36,7 @@ No production site was accessed or modified. No paid AI requests were made. Brow
 1. Extend the WordPress integration suite to cover REST uploads, multisite, offloaded media, and minimum-version WordPress. Add a browser test for the Media Library and bulk controls.
 2. Refresh provider model defaults against each provider's current catalog. Gemini 2.0 Flash and Groq Llama 3.2 vision defaults are retired. Custom model overrides remain available; provider availability is not guaranteed by the connection test. See official https://ai.google.dev/gemini-api/docs/deprecations and https://console.groq.com/docs/deprecations . A follow-up should consolidate duplicated model configuration and test a small image, not a text greeting.
 3. Add server-side bulk job locks and paginated/resumable queues for large libraries. Current jobs require the browser tab to stay open and should run in one tab at a time.
-4. Clarify that recorded bytes saved compares source and encoded main-image sizes; keeping originals and thumbnails may increase actual disk usage. Historical upload savings cannot be reconstructed reliably.
+4. Statistics now explicitly label encoding size reduction rather than disk savings. Historical upload savings cannot be reconstructed reliably; a future disk inventory could measure actual retained storage.
 5. Add a reversible migration manifest/restore interface. Preserve legacy untracked files rather than attempting risky automatic cleanup. Failed metadata generation can leave generated thumbnails; a future cleanup tool should use a verified manifest.
 6. Generate a small supported image for AI instead of loading the full source, expose safe error details, add rate-limit backoff, and avoid blocking uploads on a remote request. Some formats (TIFF/HEIC/SVG) are not accepted by every vision provider.
 7. Complete modal focus trapping/return, localization of JS strings, and per-site uninstall cleanup for cached stats. Keep retained-file ownership metadata on uninstall so reinstall can still clean up correctly.
